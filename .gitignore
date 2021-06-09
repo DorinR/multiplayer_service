@@ -1,0 +1,6 @@
+# Dependency directories
+node_modules/
+dist/
+.env
+.env.example
+.env.production
