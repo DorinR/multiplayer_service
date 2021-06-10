@@ -1,17 +1,43 @@
 import "reflect-metadata"
 import "dotenv-safe/config"
-import express from "express"
+import cors from "cors"
+const app = require("express")()
+const http = require("http").Server(app)
+const io = require("socket.io")(http, {
+    cors: {
+        origin: process.env.CORS_ORIGIN,
+        methods: ["GET", "POST"],
+    },
+})
+const port = process.env.PORT || 4000
 
-const main = async () => {
-    const app = express()
+app.get("/", (_, res) => {
+    res.send("server is good")
+})
 
-    app.listen(parseInt(process.env.PORT), () => {
-        console.log(`server started on localhost:${process.env.PORT}`)
+app.use(
+    cors({
+        origin: process.env.CORS_ORIGIN,
+        credentials: true,
+    })
+)
+
+io.on("connection", (socket) => {
+    /** user connected */
+    console.log("a user connected")
+
+    /** user disconnected */
+    socket.on("disconnect", () => {
+        console.log("user disconnected")
     })
 
-    app.get("/", (req, res) => {
-        res.send("server is good")
+    /** message received */
+    socket.on("chat message", (msg) => {
+        console.log("message: " + msg)
+        io.emit("chat message", msg)
     })
-}
+})
 
-main().catch((err) => console.error(err))
+http.listen(port, () => {
+    console.log(`Socket.IO server running at http://localhost:${port}/`)
+})
