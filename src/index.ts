@@ -1,11 +1,12 @@
 import "reflect-metadata"
 import "dotenv-safe/config"
 import cors from "cors"
+import express from "express"
+import http from "http"
 import { Socket } from "socket.io"
-const app = require("express")()
-const http = require("http").Server(app)
-
-const io = require("socket.io")(http, {
+const app = express()
+const server = http.createServer(app)
+const io = require("socket.io")(server, {
     cors: {
         origin: process.env.CORS_ORIGIN,
         methods: ["GET", "POST"],
@@ -25,47 +26,38 @@ app.use(
     })
 )
 
-const allRoomsThatExistCurrently: Record<string, number> = {}
-const listOutRooms = () => {
-    console.log("******* ROOMS CENSUS *******")
-    Object.entries(allRoomsThatExistCurrently).forEach(([room, population]) => {
-        console.log(`Room number ${room} -> ${population} people`)
-    })
-    console.log("******* ------------ *******")
-}
-const roomJoined = (room) => {
-    if (room in allRoomsThatExistCurrently) {
-        allRoomsThatExistCurrently[room]++
-    } else {
-        allRoomsThatExistCurrently[room] = 1
-    }
-}
+// let users = new Users()
+// let rooms = new Rooms()
 
-const runRoomStats = (room) => {
-    roomJoined(room)
-    listOutRooms()
-}
+const socketRooms: Record<string, string> = {}
 
 io.on("connection", (socket: Socket) => {
-    /** join specific room */
-    socket.on("join", (room) => {
-        socket.join(room)
-        runRoomStats(room)
+    console.log(`User joined, there are now ${io.engine.clientsCount} client(s) connected.`)
+    /**Person joins room */
+    socket.on("join room", ({ roomName, username }: { roomName: string; username: string }) => {
+        console.log(`${username} joined room ${roomName}`)
+        if (socket.id in socketRooms) {
+            socket.leave(socketRooms[socket.id])
+        }
+        socket.join(roomName)
+        socketRooms[socket.id] = roomName
+
+        socket.to(roomName).emit("successfully joined", `${username} joined ${roomName}`)
     })
 
-    socket.on(socket.handshake.query.roomId, (msg) => {
-        console.log(`message sent on channel ${socket.handshake.query.roomId}: ${msg}`)
-        io.emit(socket.handshake.query.roomId, msg)
+    /**Person sends message */
+    socket.on("send message", ({ roomName, message, from }: { roomName: string; message: string; from: string }) => {
+        console.log(`message from ${from}: ${message} to room ${roomName}`)
+        socket.to(roomName).emit("new message", message)
     })
 
     /** user disconnected */
     socket.on("disconnect", () => {
-        console.log("user disconnected")
+        delete socketRooms[socket.id]
+        console.log(`User left, there are now ${io.engine.clientsCount} client(s) connected.`)
     })
-
-    console.log(`There are now ${io.engine.clientsCount} client(s) connected.`)
 })
 
-http.listen(port, () => {
+server.listen(port, () => {
     console.log(`Socket.IO server running at http://localhost:${port}/`)
 })
