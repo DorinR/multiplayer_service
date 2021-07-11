@@ -1,33 +1,32 @@
 import { User } from "./User"
 
 export class Users {
-    users: User[]
-    usersIds: string[]
+    users: Record<string, User>
 
     constructor() {
-        this.users = []
-        this.usersIds = []
+        this.users = {}
     }
 
     add(user: User) {
-        if (!this.usersIds.includes(user.socketId)) {
-            this.users.push(user)
-            this.usersIds.push(user.socketId)
-        }
+        this.users[user.socketId] = user
     }
 
     remove(socketId: string) {
-        if (!this.usersIds.includes(socketId)) {
-            return
-        }
-        this.users = this.users.filter((user) => user.socketId !== socketId)
-        this.usersIds = this.usersIds.filter((socketId) => socketId !== socketId)
+        delete this.users[socketId]
+    }
+
+    contains(socketId: string) {
+        return socketId in this.users
+    }
+
+    getUserWithId(socketId: string) {
+        return this.users[socketId]
     }
 
     printAll() {
         console.log("*** Users ***")
-        this.users.forEach((user) => {
-            console.log(user.username)
+        Object.entries(this.users).map((user) => {
+            console.log(JSON.stringify(user))
         })
         console.log("--- ===== ---")
     }

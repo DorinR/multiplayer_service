@@ -1,9 +1,11 @@
 export class User {
-    username: string
     socketId: string
+    username?: string
+    roomName?: string
 
-    constructor(username: string, socketId: string) {
+    constructor(socketId: string, username?: string, room?: string) {
         this.username = username
         this.socketId = socketId
+        this.roomName = room
     }
 }

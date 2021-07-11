@@ -2,10 +2,10 @@ import { User } from "./User"
 
 export class Room {
     roomName: string
-    players: User[]
+    players: string[]
 
-    constructor(roomName: string, firstPlayer: User) {
+    constructor(roomName: string, firstPlayerId: string) {
         this.roomName = roomName
-        this.players = [firstPlayer]
+        this.players = [firstPlayerId]
     }
 }

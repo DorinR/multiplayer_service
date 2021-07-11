@@ -4,6 +4,10 @@ import cors from "cors"
 import express from "express"
 import http from "http"
 import { Socket } from "socket.io"
+import { Users } from "./models/Users"
+import { User } from "./models/User"
+import { Rooms } from "./models/Rooms"
+import { Room } from "./models/Room"
 const app = express()
 const server = http.createServer(app)
 const io = require("socket.io")(server, {
@@ -19,6 +23,27 @@ app.get("/", (_, res) => {
     res.send("server is good")
 })
 
+app.get("/getUniqueRoomId", (_, res) => {
+    const roomId = getUniqueRoomId()
+    res.json({
+        roomNumber: roomId,
+    })
+})
+
+const getUniqueRoomId = () => {
+    let uniqueId: number | null = null
+    const existingRooms = [1, 2, 3, 4]
+    for (let i = 0; i < existingRooms.length; i++) {
+        if (!existingRooms.includes(i)) {
+            return i
+        }
+    }
+    if (!uniqueId) {
+        uniqueId = existingRooms.length
+    }
+    return uniqueId
+}
+
 app.use(
     cors({
         origin: process.env.CORS_ORIGIN,
@@ -26,23 +51,43 @@ app.use(
     })
 )
 
-// let users = new Users()
-// let rooms = new Rooms()
+/**Used to track the users that are currently connected to the backend */
+const users = new Users()
 
-const socketRooms: Record<string, string> = {}
+/**User to track the existing rooms */
+const rooms = new Rooms()
 
 io.on("connection", (socket: Socket) => {
-    console.log(`User joined, there are now ${io.engine.clientsCount} client(s) connected.`)
+    console.log(`User connected, there are now ${io.engine.clientsCount} client(s) connected.`)
+    const user = new User(socket.id)
+    users.add(user)
+    // temporary logging
+    rooms.printAll()
+    users.printAll()
+
     /**Person joins room */
     socket.on("join room", ({ roomName, username }: { roomName: string; username: string }) => {
-        console.log(`${username} joined room ${roomName}`)
-        if (socket.id in socketRooms) {
-            socket.leave(socketRooms[socket.id])
+        // if user was already part of a room, remove him from it first
+        if (user.roomName) {
+            socket.leave(user.roomName)
+            rooms.removeUserFromRoom(user.roomName, socket.id)
         }
-        socket.join(roomName)
-        socketRooms[socket.id] = roomName
 
-        socket.to(roomName).emit("successfully joined", `${username} joined ${roomName}`)
+        // if room is not full, add user to room
+        const { error } = rooms.addUserToRoom(roomName, socket.id)
+        if (error) {
+            console.log(`${username} could not join room ${roomName}, it's already full`)
+        } else {
+            socket.join(roomName)
+            user.roomName = roomName
+            user.username = username
+            socket.to(roomName).emit("successfully joined", `${username} joined ${roomName}`)
+            console.log(`${username} joined room ${roomName}`)
+        }
+
+        // temporary logging
+        rooms.printAll()
+        users.printAll()
     })
 
     /**Person sends message */
@@ -53,8 +98,15 @@ io.on("connection", (socket: Socket) => {
 
     /** user disconnected */
     socket.on("disconnect", () => {
-        delete socketRooms[socket.id]
-        console.log(`User left, there are now ${io.engine.clientsCount} client(s) connected.`)
+        if (user.roomName) {
+            socket.leave(user.roomName)
+            rooms.removeUserFromRoom(user.roomName, socket.id)
+        }
+        users.remove(socket.id)
+        console.log(`User disconnected, there are now ${io.engine.clientsCount} client(s) connected.`)
+        // temporary logging
+        rooms.printAll()
+        users.printAll()
     })
 })
 
