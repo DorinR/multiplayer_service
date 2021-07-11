@@ -8,49 +8,49 @@ type AddUserResponse = {
 }
 
 export class Rooms {
-    rooms: Record<string, Room>
+    rooms: Record<number, Room>
 
     constructor() {
         this.rooms = {}
     }
 
     add(room: Room) {
-        this.rooms[room.roomName] = room
+        this.rooms[room.roomNumber] = room
     }
 
     remove(roomId: string) {
         delete this.rooms[roomId]
     }
 
-    removeUserFromRoom(roomName: string, userSocketId: string) {
-        const room = this.rooms[roomName]
+    removeUserFromRoom(roomNumber: number, userSocketId: string) {
+        const room = this.rooms[roomNumber]
         const updatedPlayersList = room.players.filter((player) => player !== userSocketId)
         if (updatedPlayersList.length === 0) {
-            delete this.rooms[roomName]
+            delete this.rooms[roomNumber]
         } else {
-            this.rooms[roomName] = new Room(roomName, updatedPlayersList[0])
+            this.rooms[roomNumber] = new Room(roomNumber, updatedPlayersList[0])
         }
     }
 
-    addUserToRoom(roomName: string, userSocketId: string): AddUserResponse {
-        if (roomName in this.rooms) {
-            if (this.rooms[roomName].players.length > 1) {
+    addUserToRoom(roomNumber: number, userSocketId: string): AddUserResponse {
+        if (roomNumber in this.rooms) {
+            if (this.rooms[roomNumber].players.length > 1) {
                 return {
                     error: {
                         message: "Room already full",
                     },
                 }
             } else {
-                this.rooms[roomName].players.push(userSocketId)
+                this.rooms[roomNumber].players.push(userSocketId)
                 return {
-                    room: this.rooms[roomName],
+                    room: this.rooms[roomNumber],
                 }
             }
         } else {
-            const room = new Room(roomName, userSocketId)
-            this.rooms[roomName] = room
+            const room = new Room(roomNumber, userSocketId)
+            this.rooms[roomNumber] = room
             return {
-                room: this.rooms[roomName],
+                room: this.rooms[roomNumber],
             }
         }
     }

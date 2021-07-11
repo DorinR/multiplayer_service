@@ -7,7 +7,6 @@ import { Socket } from "socket.io"
 import { Users } from "./models/Users"
 import { User } from "./models/User"
 import { Rooms } from "./models/Rooms"
-import { Room } from "./models/Room"
 const app = express()
 const server = http.createServer(app)
 const io = require("socket.io")(server, {
@@ -52,10 +51,10 @@ app.use(
 )
 
 /**Used to track the users that are currently connected to the backend */
-const users = new Users()
+var users = new Users()
 
 /**User to track the existing rooms */
-const rooms = new Rooms()
+var rooms = new Rooms()
 
 io.on("connection", (socket: Socket) => {
     console.log(`User connected, there are now ${io.engine.clientsCount} client(s) connected.`)
@@ -66,11 +65,11 @@ io.on("connection", (socket: Socket) => {
     users.printAll()
 
     /**Person joins room */
-    socket.on("join room", ({ roomName, username }: { roomName: string; username: string }) => {
+    socket.on("join room", ({ roomName, username }: { roomName: number; username: string }) => {
         // if user was already part of a room, remove him from it first
-        if (user.roomName) {
-            socket.leave(user.roomName)
-            rooms.removeUserFromRoom(user.roomName, socket.id)
+        if (user.roomNumber) {
+            socket.leave(String(user.roomNumber))
+            rooms.removeUserFromRoom(user.roomNumber, socket.id)
         }
 
         // if room is not full, add user to room
@@ -78,10 +77,10 @@ io.on("connection", (socket: Socket) => {
         if (error) {
             console.log(`${username} could not join room ${roomName}, it's already full`)
         } else {
-            socket.join(roomName)
-            user.roomName = roomName
+            socket.join(String(roomName))
+            user.roomNumber = roomName
             user.username = username
-            socket.to(roomName).emit("successfully joined", `${username} joined ${roomName}`)
+            socket.to(String(roomName)).emit("successfully joined", `${username} joined ${roomName}`)
             console.log(`${username} joined room ${roomName}`)
         }
 
@@ -98,9 +97,9 @@ io.on("connection", (socket: Socket) => {
 
     /** user disconnected */
     socket.on("disconnect", () => {
-        if (user.roomName) {
-            socket.leave(user.roomName)
-            rooms.removeUserFromRoom(user.roomName, socket.id)
+        if (user.roomNumber) {
+            socket.leave(String(user.roomNumber))
+            rooms.removeUserFromRoom(user.roomNumber, socket.id)
         }
         users.remove(socket.id)
         console.log(`User disconnected, there are now ${io.engine.clientsCount} client(s) connected.`)

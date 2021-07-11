@@ -1,11 +1,9 @@
-import { User } from "./User"
-
 export class Room {
-    roomName: string
+    roomNumber: number
     players: string[]
 
-    constructor(roomName: string, firstPlayerId: string) {
-        this.roomName = roomName
+    constructor(roomNumber: number, firstPlayerId: string) {
+        this.roomNumber = roomNumber
         this.players = [firstPlayerId]
     }
 }

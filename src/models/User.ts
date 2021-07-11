@@ -1,11 +1,11 @@
 export class User {
     socketId: string
     username?: string
-    roomName?: string
+    roomNumber?: number
 
-    constructor(socketId: string, username?: string, room?: string) {
+    constructor(socketId: string, username?: string, roomNumber?: number) {
         this.username = username
         this.socketId = socketId
-        this.roomName = room
+        this.roomNumber = roomNumber
     }
 }
