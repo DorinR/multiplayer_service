@@ -23,24 +23,20 @@ app.get("/", (_, res) => {
 })
 
 app.get("/getUniqueRoomId", (_, res) => {
-    const roomId = getUniqueRoomId()
+    const roomId = getUnusedRoomNumber()
     res.json({
         roomNumber: roomId,
     })
 })
 
-const getUniqueRoomId = () => {
-    let uniqueId: number | null = null
-    const existingRooms = [1, 2, 3, 4]
-    for (let i = 0; i < existingRooms.length; i++) {
-        if (!existingRooms.includes(i)) {
+const getUnusedRoomNumber = () => {
+    let i = 1
+    while (true) {
+        if (!(i in rooms.rooms)) {
             return i
         }
+        i += 1
     }
-    if (!uniqueId) {
-        uniqueId = existingRooms.length
-    }
-    return uniqueId
 }
 
 app.use(
