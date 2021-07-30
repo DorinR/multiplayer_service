@@ -7,6 +7,11 @@ type AddUserResponse = {
     }
 }
 
+type IsRoomJoinableResponse = {
+    isJoinable: boolean
+    message?: string
+}
+
 export class Rooms {
     rooms: Record<number, Room>
 
@@ -20,6 +25,37 @@ export class Rooms {
 
     remove(roomId: string) {
         delete this.rooms[roomId]
+    }
+
+    exists(roomNumber: number) {
+        return this.rooms.hasOwnProperty(roomNumber)
+    }
+
+    getRoomByRoomNumber(roomNumber: number) {
+        if (!this.exists(roomNumber)) {
+            return
+        }
+        return this.rooms[roomNumber]
+    }
+
+    isRoomJoinable(roomNumber: number): IsRoomJoinableResponse {
+        const room = this.getRoomByRoomNumber(roomNumber)
+        if (!room) {
+            return {
+                isJoinable: false,
+                message: "Room does not exist",
+            }
+        }
+        if (room.players.length > 1) {
+            return {
+                isJoinable: false,
+                message: "Room is full",
+            }
+        } else {
+            return {
+                isJoinable: true,
+            }
+        }
     }
 
     removeUserFromRoom(roomNumber: number, userSocketId: string) {

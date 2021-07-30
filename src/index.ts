@@ -18,6 +18,8 @@ const io = require("socket.io")(server, {
 
 const port = process.env.PORT || 4000
 
+app.use(cors())
+
 app.get("/", (_, res) => {
     res.send("server is good")
 })
@@ -26,6 +28,14 @@ app.get("/getUniqueRoomId", (_, res) => {
     const roomId = getUnusedRoomNumber()
     res.json({
         roomNumber: roomId,
+    })
+})
+
+app.get("/rooms/isRoomJoinable/:roomNumber", (req, res) => {
+    const { roomNumber } = req.params
+
+    res.json({
+        data: rooms.isRoomJoinable(parseInt(roomNumber, 10)),
     })
 })
 
@@ -38,13 +48,6 @@ const getUnusedRoomNumber = () => {
         i += 1
     }
 }
-
-app.use(
-    cors({
-        origin: process.env.CORS_ORIGIN,
-        credentials: true,
-    })
-)
 
 /**Used to track the users that are currently connected to the backend */
 var users = new Users()
