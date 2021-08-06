@@ -81,6 +81,7 @@ io.on("connection", (socket: Socket) => {
             user.username = username
             io.in(String(roomNumber)).emit("successfully joined", {
                 updatedRoom: rooms.getRoomByRoomNumber(roomNumber),
+                username,
             })
             console.log(`${username} joined room ${roomNumber}`)
         }
