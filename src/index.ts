@@ -64,7 +64,7 @@ io.on("connection", (socket: Socket) => {
     users.printAll()
 
     /**Person joins room */
-    socket.on("join room", ({ roomName, username }: { roomName: number; username: string }) => {
+    socket.on("join room", ({ roomNumber, username }: { roomNumber: number; username: string }) => {
         // if user was already part of a room, remove him from it first
         if (user.roomNumber) {
             socket.leave(String(user.roomNumber))
@@ -72,17 +72,34 @@ io.on("connection", (socket: Socket) => {
         }
 
         // if room is not full, add user to room
-        const { error } = rooms.addUserToRoom(roomName, socket.id)
+        const { error } = rooms.addUserToRoom(roomNumber, socket.id)
         if (error) {
-            console.log(`${username} could not join room ${roomName}, it's already full`)
+            console.log(`${username} could not join room ${roomNumber}, it's already full`)
         } else {
-            socket.join(String(roomName))
-            user.roomNumber = roomName
+            socket.join(String(roomNumber))
+            user.roomNumber = roomNumber
             user.username = username
-            socket.to(String(roomName)).emit("successfully joined", `${username} joined ${roomName}`)
-            console.log(`${username} joined room ${roomName}`)
+            io.in(String(roomNumber)).emit("successfully joined", {
+                updatedRoom: rooms.getRoomByRoomNumber(roomNumber),
+            })
+            console.log(`${username} joined room ${roomNumber}`)
         }
 
+        // temporary logging
+        rooms.printAll()
+        users.printAll()
+    })
+
+    /**Leaving a room */
+    socket.on("leave room", () => {
+        if (user.roomNumber) {
+            console.log(`${user.username} left room ${user.roomNumber}`)
+            socket.to(String(user.roomNumber)).emit("left room")
+            socket.leave(String(user.roomNumber))
+            rooms.removeUserFromRoom(user.roomNumber, socket.id)
+            delete user.roomNumber
+            delete user.username
+        }
         // temporary logging
         rooms.printAll()
         users.printAll()

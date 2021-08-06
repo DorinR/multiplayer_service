@@ -15,6 +15,11 @@ export class Users {
         delete this.users[socketId]
     }
 
+    leaveRoom(socketId: string) {
+        const user = this.users[socketId]
+        delete user.roomNumber
+    }
+
     contains(socketId: string) {
         return socketId in this.users
     }
