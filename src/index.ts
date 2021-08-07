@@ -112,6 +112,12 @@ io.on("connection", (socket: Socket) => {
         socket.to(roomName).emit("new message", message)
     })
 
+    /**Update game phase */
+    socket.on("update game phase", ({ newGamePhase, roomNumber }: { newGamePhase: string; roomNumber: string }) => {
+        console.log(`game phase updated to ${newGamePhase}`)
+        socket.to(roomNumber).emit("update game phase", newGamePhase)
+    })
+
     /** user disconnected */
     socket.on("disconnect", () => {
         if (user.roomNumber) {
