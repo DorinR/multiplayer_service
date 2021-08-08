@@ -118,6 +118,12 @@ io.on("connection", (socket: Socket) => {
         socket.to(roomNumber).emit("update game phase", newGamePhase)
     })
 
+    /**Broadcasting starting game state */
+    socket.on("starting game board", ({ roomNumber, startingState }: { roomNumber: string; startingState: string }) => {
+        console.log(`Game starting in room ${roomNumber} with puzzle ${startingState}`)
+        io.in(String(roomNumber)).emit("starting game board", startingState)
+    })
+
     /** user disconnected */
     socket.on("disconnect", () => {
         if (user.roomNumber) {
