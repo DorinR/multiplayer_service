@@ -107,10 +107,23 @@ io.on("connection", (socket: Socket) => {
     })
 
     /**Person sends message */
-    socket.on("send message", ({ roomName, message, from }: { roomName: string; message: string; from: string }) => {
-        console.log(`message from ${from}: ${message} to room ${roomName}`)
-        socket.to(roomName).emit("new message", message)
-    })
+    socket.on(
+        "updated board",
+        ({
+            roomName,
+            updatedPuzzleState,
+            username,
+        }: {
+            roomName: string
+            updatedPuzzleState: string
+            username: string
+        }) => {
+            socket.to(roomName).emit("opponents new board", updatedPuzzleState)
+            if (updatedPuzzleState.indexOf("1") === -1) {
+                io.in(roomName).emit("winner detected", username)
+            }
+        }
+    )
 
     /**Update game phase */
     socket.on("update game phase", ({ newGamePhase, roomNumber }: { newGamePhase: string; roomNumber: string }) => {
