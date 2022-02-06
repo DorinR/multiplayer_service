@@ -3,6 +3,7 @@ import "dotenv-safe/config"
 import cors from "cors"
 import express from "express"
 import http from "http"
+import Chance from "chance"
 import { Socket } from "socket.io"
 import { Users } from "./models/Users"
 import { User } from "./models/User"
@@ -15,6 +16,7 @@ const io = require("socket.io")(server, {
         methods: ["GET", "POST"],
     },
 })
+const chance = new Chance()
 
 const port = process.env.PORT || 4000
 
@@ -35,17 +37,20 @@ app.get("/rooms/isRoomJoinable/:roomNumber", (req, res) => {
     const { roomNumber } = req.params
 
     res.json({
-        data: rooms.isRoomJoinable(parseInt(roomNumber, 10)),
+        data: rooms.isRoomJoinable(roomNumber),
     })
 })
 
+const generateTentativeRoomName = () => {
+    return `${chance.first().toLowerCase()}-${chance.integer({ min: 1, max: 1000 })}`
+}
+
 const getUnusedRoomNumber = () => {
-    let i = 1
     while (true) {
-        if (!(i in rooms.rooms)) {
-            return i
+        let tentativeRoomName = generateTentativeRoomName()
+        if (!(tentativeRoomName in rooms.rooms)) {
+            return tentativeRoomName
         }
-        i += 1
     }
 }
 

@@ -38,8 +38,8 @@ export class Rooms {
         return this.rooms[roomNumber]
     }
 
-    isRoomJoinable(roomNumber: number): IsRoomJoinableResponse {
-        const room = this.getRoomByRoomNumber(roomNumber)
+    isRoomJoinable(roomNumber: string): IsRoomJoinableResponse {
+        const room: Room = this.rooms[roomNumber]
         if (!room) {
             return {
                 isJoinable: false,
