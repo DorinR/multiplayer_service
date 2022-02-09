@@ -1,9 +1,9 @@
 export class Room {
-    roomNumber: number
+    roomName: string
     players: string[]
 
-    constructor(roomNumber: number, firstPlayerId: string) {
-        this.roomNumber = roomNumber
+    constructor(roomName: string, firstPlayerId: string) {
+        this.roomName = roomName
         this.players = [firstPlayerId]
     }
 }

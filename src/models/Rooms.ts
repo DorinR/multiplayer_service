@@ -20,26 +20,26 @@ export class Rooms {
     }
 
     add(room: Room) {
-        this.rooms[room.roomNumber] = room
+        this.rooms[room.roomName] = room
     }
 
     remove(roomId: string) {
         delete this.rooms[roomId]
     }
 
-    exists(roomNumber: number) {
-        return this.rooms.hasOwnProperty(roomNumber)
+    exists(roomName: string) {
+        return this.rooms.hasOwnProperty(roomName)
     }
 
-    getRoomByRoomNumber(roomNumber: number) {
-        if (!this.exists(roomNumber)) {
+    getRoomByRoomName(roomName: string) {
+        if (!this.exists(roomName)) {
             return
         }
-        return this.rooms[roomNumber]
+        return this.rooms[roomName]
     }
 
-    isRoomJoinable(roomNumber: string): IsRoomJoinableResponse {
-        const room: Room = this.rooms[roomNumber]
+    isRoomJoinable(roomName: string): IsRoomJoinableResponse {
+        const room: Room = this.rooms[roomName]
         if (!room) {
             return {
                 isJoinable: false,
@@ -58,35 +58,35 @@ export class Rooms {
         }
     }
 
-    removeUserFromRoom(roomNumber: number, userSocketId: string) {
-        const room = this.rooms[roomNumber]
+    removeUserFromRoom(roomName: string, userSocketId: string) {
+        const room = this.rooms[roomName]
         const updatedPlayersList = room.players.filter((player) => player !== userSocketId)
         if (updatedPlayersList.length === 0) {
-            delete this.rooms[roomNumber]
+            delete this.rooms[roomName]
         } else {
-            this.rooms[roomNumber] = new Room(roomNumber, updatedPlayersList[0])
+            this.rooms[roomName] = new Room(roomName, updatedPlayersList[0])
         }
     }
 
-    addUserToRoom(roomNumber: number, userSocketId: string): AddUserResponse {
-        if (roomNumber in this.rooms) {
-            if (this.rooms[roomNumber].players.length > 1) {
+    addUserToRoom(roomName: string, userSocketId: string): AddUserResponse {
+        if (roomName in this.rooms) {
+            if (this.rooms[roomName].players.length > 1) {
                 return {
                     error: {
                         message: "Room already full",
                     },
                 }
             } else {
-                this.rooms[roomNumber].players.push(userSocketId)
+                this.rooms[roomName].players.push(userSocketId)
                 return {
-                    room: this.rooms[roomNumber],
+                    room: this.rooms[roomName],
                 }
             }
         } else {
-            const room = new Room(roomNumber, userSocketId)
-            this.rooms[roomNumber] = room
+            const room = new Room(roomName, userSocketId)
+            this.rooms[roomName] = room
             return {
-                room: this.rooms[roomNumber],
+                room: this.rooms[roomName],
             }
         }
     }

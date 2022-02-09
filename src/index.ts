@@ -57,8 +57,11 @@ const getUnusedRoomNumber = () => {
 /**Used to track the users that are currently connected to the backend */
 var users = new Users()
 
-/**User to track the existing rooms */
+/**Used to track the existing rooms for private matches*/
 var rooms = new Rooms()
+
+/**Used to track public game rooms*/
+var publicRooms = new Rooms()
 
 io.on("connection", (socket: Socket) => {
     console.log(`User connected, there are now ${io.engine.clientsCount} client(s) connected.`)
@@ -69,11 +72,11 @@ io.on("connection", (socket: Socket) => {
     users.printAll()
 
     /**Person joins room */
-    socket.on("join room", ({ roomNumber, username }: { roomNumber: number; username: string }) => {
+    socket.on("join room", ({ roomNumber, username }: { roomNumber: string; username: string }) => {
         // if user was already part of a room, remove him from it first
-        if (user.roomNumber) {
-            socket.leave(String(user.roomNumber))
-            rooms.removeUserFromRoom(user.roomNumber, socket.id)
+        if (user.roomName) {
+            socket.leave(String(user.roomName))
+            rooms.removeUserFromRoom(user.roomName, socket.id)
         }
 
         // if room is not full, add user to room
@@ -82,10 +85,10 @@ io.on("connection", (socket: Socket) => {
             console.log(`${username} could not join room ${roomNumber}, it's already full`)
         } else {
             socket.join(String(roomNumber))
-            user.roomNumber = roomNumber
+            user.roomName = roomNumber
             user.username = username
             io.in(String(roomNumber)).emit("successfully joined", {
-                updatedRoom: rooms.getRoomByRoomNumber(roomNumber),
+                updatedRoom: rooms.getRoomByRoomName(roomNumber),
                 username,
             })
             console.log(`${username} joined room ${roomNumber}`)
@@ -98,12 +101,12 @@ io.on("connection", (socket: Socket) => {
 
     /**Leaving a room */
     socket.on("leave room", () => {
-        if (user.roomNumber) {
-            console.log(`${user.username} left room ${user.roomNumber}`)
-            socket.to(String(user.roomNumber)).emit("left room")
-            socket.leave(String(user.roomNumber))
-            rooms.removeUserFromRoom(user.roomNumber, socket.id)
-            delete user.roomNumber
+        if (user.roomName) {
+            console.log(`${user.username} left room ${user.roomName}`)
+            socket.to(String(user.roomName)).emit("left room")
+            socket.leave(String(user.roomName))
+            rooms.removeUserFromRoom(user.roomName, socket.id)
+            delete user.roomName
             delete user.username
         }
         // temporary logging
@@ -144,15 +147,20 @@ io.on("connection", (socket: Socket) => {
 
     /** user disconnected */
     socket.on("disconnect", () => {
-        if (user.roomNumber) {
-            socket.leave(String(user.roomNumber))
-            rooms.removeUserFromRoom(user.roomNumber, socket.id)
+        if (user.roomName) {
+            socket.leave(String(user.roomName))
+            rooms.removeUserFromRoom(user.roomName, socket.id)
         }
         users.remove(socket.id)
         console.log(`User disconnected, there are now ${io.engine.clientsCount} client(s) connected.`)
         // temporary logging
         rooms.printAll()
         users.printAll()
+    })
+
+    /** joining matchmaking queue */
+    socket.on("join matchmaking queue", ({ username }: { username: string }) => {
+        console.log(`${username} has joined the matchmaking queue`)
     })
 })
 
