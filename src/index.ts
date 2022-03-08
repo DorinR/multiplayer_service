@@ -10,12 +10,15 @@ import { User } from "./models/User"
 import { Rooms } from "./models/Rooms"
 const app = express()
 const server = http.createServer(app)
+
+// create a SockerIO server instance
 const io = require("socket.io")(server, {
     cors: {
         origin: process.env.CORS_ORIGIN,
         methods: ["GET", "POST"],
     },
 })
+
 const chance = new Chance()
 
 const port = process.env.PORT || 4000
@@ -37,7 +40,7 @@ app.get("/rooms/isRoomJoinable/:roomNumber", (req, res) => {
     const { roomNumber } = req.params
 
     res.json({
-        data: rooms.isRoomJoinable(roomNumber),
+        data: privateRooms.isRoomJoinable(roomNumber),
     })
 })
 
@@ -48,55 +51,32 @@ const generateTentativeRoomName = () => {
 const getUnusedRoomNumber = () => {
     while (true) {
         let tentativeRoomName = generateTentativeRoomName()
-        if (!(tentativeRoomName in rooms.rooms)) {
+        if (!(tentativeRoomName in privateRooms.rooms)) {
             return tentativeRoomName
         }
     }
 }
 
-/**Used to track the users that are currently connected to the backend */
+/**Used to track the users that are currently connected */
 var users = new Users()
 
 /**Used to track the existing rooms for private matches*/
-var rooms = new Rooms()
+var privateRooms = new Rooms("public")
 
 /**Used to track public game rooms*/
-var publicRooms = new Rooms()
+var publicRooms = new Rooms("private")
 
 io.on("connection", (socket: Socket) => {
     console.log(`User connected, there are now ${io.engine.clientsCount} client(s) connected.`)
     const user = new User(socket.id)
     users.add(user)
     // temporary logging
-    rooms.printAll()
+    privateRooms.printAll()
     users.printAll()
 
     /**Person joins room */
     socket.on("join room", ({ roomNumber, username }: { roomNumber: string; username: string }) => {
-        // if user was already part of a room, remove him from it first
-        if (user.roomName) {
-            socket.leave(String(user.roomName))
-            rooms.removeUserFromRoom(user.roomName, socket.id)
-        }
-
-        // if room is not full, add user to room
-        const { error } = rooms.addUserToRoom(roomNumber, socket.id)
-        if (error) {
-            console.log(`${username} could not join room ${roomNumber}, it's already full`)
-        } else {
-            socket.join(String(roomNumber))
-            user.roomName = roomNumber
-            user.username = username
-            io.in(String(roomNumber)).emit("successfully joined", {
-                updatedRoom: rooms.getRoomByRoomName(roomNumber),
-                username,
-            })
-            console.log(`${username} joined room ${roomNumber}`)
-        }
-
-        // temporary logging
-        rooms.printAll()
-        users.printAll()
+        addUserToRoom(user, username, roomNumber, socket, privateRooms)
     })
 
     /**Leaving a room */
@@ -105,12 +85,12 @@ io.on("connection", (socket: Socket) => {
             console.log(`${user.username} left room ${user.roomName}`)
             socket.to(String(user.roomName)).emit("left room")
             socket.leave(String(user.roomName))
-            rooms.removeUserFromRoom(user.roomName, socket.id)
+            privateRooms.removeUserFromRoom(user.roomName, socket.id)
             delete user.roomName
             delete user.username
         }
         // temporary logging
-        rooms.printAll()
+        privateRooms.printAll()
         users.printAll()
     })
 
@@ -149,21 +129,52 @@ io.on("connection", (socket: Socket) => {
     socket.on("disconnect", () => {
         if (user.roomName) {
             socket.leave(String(user.roomName))
-            rooms.removeUserFromRoom(user.roomName, socket.id)
+            privateRooms.removeUserFromRoom(user.roomName, socket.id)
         }
         users.remove(socket.id)
         console.log(`User disconnected, there are now ${io.engine.clientsCount} client(s) connected.`)
         // temporary logging
-        rooms.printAll()
+        privateRooms.printAll()
         users.printAll()
     })
 
     /** joining matchmaking queue */
     socket.on("join matchmaking queue", ({ username }: { username: string }) => {
         console.log(`${username} has joined the matchmaking queue`)
+        const roomName = publicRooms.joinOnlineGame(socket, username, addUserToRoom, user)
+        socket.to(roomName).emit("public game joined", roomName)
     })
 })
 
 server.listen(port, () => {
     console.log(`Socket.IO server running at http://localhost:${port}/`)
 })
+
+export type FnAddUserToRoom = (user: User, username: string, roomNumber: string, socket: Socket, rooms: Rooms) => void
+
+const addUserToRoom = (user: User, username: string, roomNumber: string, socket: Socket, rooms: Rooms) => {
+    // if user was already part of a room, remove him from it first
+    if (user.roomName) {
+        socket.leave(String(user.roomName))
+        rooms.removeUserFromRoom(user.roomName, socket.id)
+    }
+
+    // if room is not full, add user to room
+    const { error } = rooms.addUserToRoom(roomNumber, socket.id)
+    if (error) {
+        console.log(`${username} could not join room ${roomNumber}, it's already full`)
+    } else {
+        socket.join(String(roomNumber))
+        user.roomName = roomNumber
+        user.username = username
+        io.in(String(roomNumber)).emit("successfully joined", {
+            updatedRoom: rooms.getRoomByRoomName(roomNumber),
+            username,
+        })
+        console.log(`${username} joined room ${roomNumber}`)
+    }
+
+    // temporary logging
+    rooms.printAll()
+    users.printAll()
+}
