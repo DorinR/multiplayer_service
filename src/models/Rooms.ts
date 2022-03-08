@@ -1,4 +1,9 @@
 import { Room } from "./Room"
+import Chance from "chance"
+import { Socket } from "socket.io"
+import { FnAddUserToRoom } from "src"
+import { User } from "./User"
+const chance = new Chance()
 
 type AddUserResponse = {
     room?: Room
@@ -12,11 +17,15 @@ type IsRoomJoinableResponse = {
     message?: string
 }
 
-export class Rooms {
-    rooms: Record<number, Room>
+type RoomsType = "public" | "private"
 
-    constructor() {
+export class Rooms {
+    rooms: Record<string, Room>
+    type: RoomsType
+
+    constructor(type: RoomsType) {
         this.rooms = {}
+        this.type = type
     }
 
     add(room: Room) {
@@ -60,11 +69,13 @@ export class Rooms {
 
     removeUserFromRoom(roomName: string, userSocketId: string) {
         const room = this.rooms[roomName]
-        const updatedPlayersList = room.players.filter((player) => player !== userSocketId)
-        if (updatedPlayersList.length === 0) {
-            delete this.rooms[roomName]
-        } else {
-            this.rooms[roomName] = new Room(roomName, updatedPlayersList[0])
+        if (room) {
+            const updatedPlayersList = room.players.filter((player) => player !== userSocketId)
+            if (updatedPlayersList.length === 0) {
+                delete this.rooms[roomName]
+            } else {
+                this.rooms[roomName] = new Room(roomName, updatedPlayersList[0])
+            }
         }
     }
 
@@ -91,8 +102,43 @@ export class Rooms {
         }
     }
 
+    /**
+     * 2 possibilities
+     * 1. User will be added to half-empty room
+     * 2. If no such room exists, new room will be created and user added to that room
+     */
+    joinOnlineGame(socket: Socket, username: string, addUserToRoom: FnAddUserToRoom, user: User) {
+        // find half-empty room
+        const allExistingRooms = Object.values(this.rooms)
+        let roomToJoin: string | null = null
+        for (let room of allExistingRooms) {
+            if (room.players.length === 1) {
+                roomToJoin = room.roomName
+            }
+        }
+        if (!roomToJoin) {
+            roomToJoin = this.getUnusedRoomName()
+        }
+
+        addUserToRoom(user, username, roomToJoin, socket, this)
+        return roomToJoin
+    }
+
+    generateTentativeRoomName = () => {
+        return `${chance.first().toLowerCase()}-${chance.integer({ min: 1, max: 1000 })}`
+    }
+
+    getUnusedRoomName = () => {
+        while (true) {
+            let tentativeRoomName: string = this.generateTentativeRoomName()
+            if (!(tentativeRoomName in this.rooms)) {
+                return tentativeRoomName
+            }
+        }
+    }
+
     printAll() {
-        console.log("*** Rooms ***")
+        console.log(`*** ${this.type} rooms ***`)
         Object.entries(this.rooms).forEach((room) => {
             console.log(JSON.stringify(room))
         })
