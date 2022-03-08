@@ -140,9 +140,8 @@ io.on("connection", (socket: Socket) => {
 
     /** joining matchmaking queue */
     socket.on("join matchmaking queue", ({ username }: { username: string }) => {
-        console.log(`${username} has joined the matchmaking queue`)
         const roomName = publicRooms.joinOnlineGame(socket, username, addUserToRoom, user)
-        socket.to(roomName).emit("public game joined", roomName)
+        socket.emit("public game joined", roomName)
     })
 })
 
