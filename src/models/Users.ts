@@ -17,7 +17,7 @@ export class Users {
 
     leaveRoom(socketId: string) {
         const user = this.users[socketId]
-        delete user.roomNumber
+        delete user.roomName
     }
 
     contains(socketId: string) {
