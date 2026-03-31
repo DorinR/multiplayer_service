@@ -3,6 +3,7 @@ import "dotenv-safe/config"
 import cors from "cors"
 import express from "express"
 import http from "http"
+import path from "path"
 import Chance from "chance"
 import { Socket } from "socket.io"
 import { Users } from "./models/Users"
@@ -14,7 +15,7 @@ const server = http.createServer(app)
 // create a SockerIO server instance
 const io = require("socket.io")(server, {
     cors: {
-        origin: process.env.CORS_ORIGIN,
+        origin: process.env.CORS_ORIGIN || "*",
         methods: ["GET", "POST"],
     },
 })
@@ -22,11 +23,23 @@ const io = require("socket.io")(server, {
 const chance = new Chance()
 
 const port = process.env.PORT || 4000
+const host = process.env.HOST || "0.0.0.0"
+const publicDir = path.resolve(__dirname, "../public")
 
 app.use(cors())
 
-app.get("/", (_, res) => {
-    res.send("server is good")
+app.get("/health", (_, res) => {
+    res.json({ ok: true })
+})
+
+app.get("/config.js", (_, res) => {
+    const config = {
+        backendUrl: process.env.PUBLIC_BACKEND_URL || "",
+        firebaseApiKey: process.env.VITE_FIREBASE_API_KEY || "",
+    }
+
+    res.type("application/javascript")
+    res.send(`window.__APP_CONFIG__ = ${JSON.stringify(config)};`)
 })
 
 app.get("/getUniqueRoomId", (_, res) => {
@@ -42,6 +55,12 @@ app.get("/rooms/isRoomJoinable/:roomNumber", (req, res) => {
     res.json({
         data: privateRooms.isRoomJoinable(roomNumber),
     })
+})
+
+app.use(express.static(publicDir))
+
+app.get(/^\/(?!getUniqueRoomId|rooms\/isRoomJoinable|socket\.io|health).*/, (_, res) => {
+    res.sendFile(path.join(publicDir, "index.html"))
 })
 
 const generateTentativeRoomName = () => {
@@ -145,8 +164,8 @@ io.on("connection", (socket: Socket) => {
     })
 })
 
-server.listen(port, () => {
-    console.log(`Socket.IO server running at http://localhost:${port}/`)
+server.listen(Number(port), host, () => {
+    console.log(`Socket.IO server running at http://${host}:${port}/`)
 })
 
 export type FnAddUserToRoom = (user: User, username: string, roomNumber: string, socket: Socket, rooms: Rooms) => void

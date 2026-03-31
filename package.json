@@ -13,8 +13,9 @@
     "scripts": {
         "gen-env": "gen-env-types .env -o src/env.d.ts -e .",
         "build": "tsc",
+        "prestart": "npm run build",
         "test": "echo \"Error: no test specified\" && exit 1",
-        "dev": "nodemon dist/index.js",
+        "dev": "tsx watch src/index.ts",
         "start": "node dist/index.js",
         "watch": "tsc -w",
         "typeorm": "node --require ts-node/register ./node_modules/typeorm/cli.js"
@@ -29,6 +30,7 @@
         "@types/socket.io": "^3.0.2",
         "gen-env-types": "^1.0.4",
         "nodemon": "^2.0.4",
+        "tsx": "^4.21.0",
         "typescript": "^4.0.3"
     },
     "dependencies": {
