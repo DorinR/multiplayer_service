@@ -165,7 +165,8 @@ io.on("connection", (socket: Socket) => {
 })
 
 server.listen(Number(port), host, () => {
-    console.log(`Socket.IO server running at http://${host}:${port}/`)
+    const displayHost = host === "0.0.0.0" ? "localhost" : host
+    console.log(`Socket.IO server running at http://${displayHost}:${port}/`)
 })
 
 export type FnAddUserToRoom = (user: User, username: string, roomNumber: string, socket: Socket, rooms: Rooms) => void
